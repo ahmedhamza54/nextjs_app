@@ -12,9 +12,21 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+model Goal {
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  isGenerating Boolean         @default(true)
+  isGenerated  Boolean         @default(false)
+  color        String
+  createdAt    DateTime        @default(now())
+  checklist    ChecklistItem[]
+}
 
-model Post {
+model ChecklistItem {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  content   String
+  text      String
+  completed Boolean  @default(false)
+  priority  String   // "low" | "medium" | "high"
+  goalId    String   @db.ObjectId
+  goal      Goal     @relation(fields: [goalId], references: [id])
 }
