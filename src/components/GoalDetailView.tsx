@@ -10,14 +10,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface GoalDetailViewProps {
   goal: Goal;
   onBack: () => void;
-  onUpdateGoal: (goal: Goal) => void;
+  onUpdateGoal: (updatedGoal: Goal) => void; // Add this
 }
 
 const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onBack, onUpdateGoal }) => {
   const [visibleTasks, setVisibleTasks] = useState(0);
 
   useEffect(() => {
-    // Animate tasks appearing one by one
+    setVisibleTasks(0);
     const timer = setInterval(() => {
       setVisibleTasks((prev) => {
         if (prev >= goal.checklist.length) {
@@ -27,17 +27,26 @@ const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onBack, onUpdateG
         return prev + 1;
       });
     }, 200);
-
     return () => clearInterval(timer);
-  }, [goal.checklist.length]);
+  }, [goal.id, goal.checklist.length]);
 
-  const handleTaskToggle = (taskId: string) => {
+  const handleTaskToggle = async (taskId: string) => {
     const updatedChecklist = goal.checklist.map(task =>
       task.id === taskId ? { ...task, completed: !task.completed } : task
     );
-    
     const updatedGoal = { ...goal, checklist: updatedChecklist };
-    onUpdateGoal(updatedGoal);
+    
+    // Update via API
+    try {
+      await fetch('/api/goals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, completed: !goal.checklist.find(t => t.id === taskId)!.completed }),
+      });
+      onUpdateGoal(updatedGoal); // Update parent state
+    } catch (error) {
+      console.error('Failed to update checklist item:', error);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -51,39 +60,31 @@ const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onBack, onUpdateG
 
   const completedTasks = goal.checklist.filter(task => task.completed).length;
   const totalTasks = goal.checklist.length;
-  const progressPercentage = (completedTasks / totalTasks) * 100;
+  const progressPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <Button 
-            onClick={onBack}
-            variant="outline"
-            className="mb-4 rounded-xl"
-          >
-            ← Back to Goals
-          </Button>
-          
-          <div className={`p-8 rounded-2xl ${goal.color} text-white animate-scale-in`}>
-            <h1 className="text-3xl font-bold mb-4">{goal.title}</h1>
-            <div className="space-y-2">
-              <div className="flex justify-between text-white/90">
-                <span>Progress</span>
-                <span>{completedTasks} of {totalTasks} completed</span>
-              </div>
-              <div className="w-full bg-white/20 rounded-full h-3">
-                <div 
-                  className="bg-white h-3 rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
-              </div>
+        <Button onClick={onBack} variant="outline" className="mb-4 rounded-xl">
+          ← Back to Goals
+        </Button>
+        
+        <div className={`p-8 rounded-2xl ${goal.color} text-white animate-scale-in`}>
+          <h1 className="text-3xl font-bold mb-4">{goal.title}</h1>
+          <div className="space-y-2">
+            <div className="flex justify-between text-white/90">
+              <span>Progress</span>
+              <span>{completedTasks} of {totalTasks} completed</span>
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-3">
+              <div 
+                className="bg-white h-3 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
             </div>
           </div>
         </div>
 
-        {/* Checklist */}
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 animate-fade-in">
             Your AI-Generated Action Plan
@@ -138,7 +139,6 @@ const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onBack, onUpdateG
             </Card>
           ))}
           
-          {/* Loading indicator for tasks still being revealed */}
           {visibleTasks < goal.checklist.length && (
             <div className="flex justify-center py-4 animate-fade-in">
               <div className="flex items-center gap-2 text-purple-600">
@@ -149,7 +149,6 @@ const GoalDetailView: React.FC<GoalDetailViewProps> = ({ goal, onBack, onUpdateG
           )}
         </div>
 
-        {/* Completion celebration */}
         {completedTasks === totalTasks && totalTasks > 0 && (
           <Card className="mt-8 p-6 bg-gradient-to-r from-green-400 to-blue-500 text-white rounded-2xl animate-scale-in">
             <div className="text-center">

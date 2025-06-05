@@ -1,15 +1,13 @@
 // src/app/layout.tsx
 import { ReactNode } from "react";
 import "@/app/globals.css";
-import Providers from "@/components/Providers";
+import { GoalProvider } from '@/lib/GoalContext';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Providers>
-          {children}
-        </Providers>
+       <GoalProvider>{children}</GoalProvider>
       </body>
     </html>
   );

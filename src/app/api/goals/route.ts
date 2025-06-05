@@ -99,3 +99,25 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, completed } = body;
+
+    if (!id || typeof completed !== 'boolean') {
+      return NextResponse.json({ error: 'Checklist item ID and completed status are required' }, { status: 400 });
+    }
+
+    const updatedItem = await prisma.checklistItem.update({
+      where: { id },
+      data: { completed },
+      include: { goal: { include: { checklist: true } } },
+    });
+
+    return NextResponse.json(updatedItem);
+  } catch (error: any) {
+    console.error('Error updating checklist item:', error.message || error);
+    return NextResponse.json({ error: 'Failed to update checklist item' }, { status: 500 });
+  }
+}
