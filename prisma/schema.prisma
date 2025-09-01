@@ -12,6 +12,54 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+model Field {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  crop         String
+  plantedAt    DateTime?
+  locationName String        @default("Not Set")
+  
+  // Store latitude and longitude as separate fields for easier querying
+  latitude     Float?
+  longitude    Float?
+
+  threadId     String?       @unique // OpenAI Assistant thread ID
+
+  // Timestamps
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relation: A field can have many chat messages
+  messages     ChatMessage[]
+
+  actions      FieldAction[]
+}
+
+model FieldAction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String   // e.g., "Watered", "Fertilized"
+  date      DateTime // The date the action was performed
+  createdAt DateTime @default(now())
+
+  // Relation: Each action belongs to one field
+  field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  fieldId   String   @db.ObjectId
+}
+
+// Model for a single chat message
+model ChatMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  role      String   // "user", "assistant", or "system"
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relation: Each message belongs to one field
+  field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  fieldId   String   @db.ObjectId
+}
+
+
 model Goal {
   id           String          @id @default(auto()) @map("_id") @db.ObjectId
   title        String
